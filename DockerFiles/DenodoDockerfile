@@ -1,0 +1,74 @@
+FROM debian:stable as builder
+
+
+ENV DENODO_HOME                /opt/denodo
+
+ENV PATH                        "${DENODO_HOME}/jre/bin:${PATH}"
+
+
+# The Denodo installation requires the uncompressed denodo installer and
+
+# a install.xml file for unattended installation.
+
+COPY ./denodo-install-solutionmanager-7.0-linux64/denodo-install-solutionmanager-7.0 /opt/denodo-install
+
+COPY ./install_sm.xml /opt/denodo-install/install.xml
+
+
+
+WORKDIR /opt/denodo-install
+
+RUN chmod +x installer_cli.sh
+
+RUN ./installer_cli.sh install --autoinstaller install.xml
+
+# Copy start up script
+COPY ./solution-manager-start.sh ${DENODO_HOME}
+
+RUN chmod +x ${DENODO_HOME}/solution-manager-start.sh
+
+# Modify the vqlserver start script to wait for vqlserver to exit (so
+
+# the container does not die upon start)
+
+RUN sed -i "s/exit 0/wait/g" ${DENODO_HOME}/bin/vqlserver.sh
+
+
+## Multi-step built to reduce the size of the final image
+
+FROM debian:stable
+
+
+ENV DENODO_HOME /opt/denodo
+
+ENV PATH        "${DENODO_HOME}/jre/bin:${PATH}"
+
+
+# Copy Denodo Platform from the builder image to the end image
+
+COPY --from=builder $DENODO_HOME $DENODO_HOME
+
+
+# Sets the workdir for the rest of the script
+
+WORKDIR $DENODO_HOME
+
+
+# The following ports used by VDP are exposed:
+
+# 19999,19997 - RMI (JDBC, AdminTool, ...)
+
+
+# 10090 - SM Services
+
+# 10091 - License Manager Server
+# 19090 - Web Container
+
+EXPOSE 19999 19997 10090 10091 19090
+
+CMD ${DENODO_HOME}/solution-manager-start.sh
+
+
+# Example docker run command:
+
+# docker run -d -h localhost -p 9999:9999 -p 9997:9997 -p 9996:9996 -p  # 9090:9090 -v ./denodo.lic:/opt/denodo/conf/denodo.lic denodo-image
