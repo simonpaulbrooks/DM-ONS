@@ -1,2 +1,3 @@
 # DM-ONS
-Digital Modus ONS Projecct
+Digital Modus ONS Project
+Denodo Deployement to GKE using Docker containers
