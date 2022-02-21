@@ -1,0 +1,143 @@
+apiVersion: v1
+
+kind: Service
+
+metadata:
+
+  name: denodo-service
+
+spec:
+
+  selector:
+
+    app: denodo-app
+
+  ports:
+
+  - name: svc-denodo
+
+    protocol: "TCP"
+
+    port: 8999
+
+    targetPort: denodo-port
+
+  - name: svc-rmi-r
+
+    protocol: "TCP"
+
+    port: 8997
+
+    targetPort: jdbc-rmi-rgstry
+
+  - name: svc-rmi-f
+
+    protocol: "TCP"
+
+    port: 8995
+
+    targetPort: jdbc-rmi-fctory
+
+  - name: svc-odbc
+
+    protocol: "TCP"
+
+    port: 8996
+
+    targetPort: odbc
+
+  - name: svc-web
+
+    protocol: "TCP"
+
+    port: 8090
+
+    targetPort: web-container
+
+  type: LoadBalancer
+
+---
+
+apiVersion: apps/v1
+
+kind: Deployment
+
+metadata:
+
+  name: denodo-deployment
+
+spec:
+
+  selector:
+
+    matchLabels:
+
+      app: denodo-app
+
+  replicas: 2
+
+  template:
+
+    metadata:
+
+      labels:
+
+        app: denodo-app
+
+    spec:
+
+      hostname: denodo-hostname
+
+      containers:
+
+      - name: denodo-container
+
+        image: denodo-platform:8.0-latest
+
+        command: ["./denodo-container-start.sh"]
+
+        args: ["--vqlserver"]
+
+        env:
+
+        - name: FACTORY_PORT
+
+          value: "8995"
+
+        ports:
+
+        - name: denodo-port
+
+          containerPort: 9999
+
+        - name: jdbc-rmi-rgstry
+
+          containerPort: 9997
+
+        - name: jdbc-rmi-fctory
+
+          containerPort: 8995
+
+        - name: odbc
+
+          containerPort: 9996
+
+        - name: web-container
+
+          containerPort: 9090
+
+        volumeMounts:
+
+        - name: config-volume
+
+          mountPath: /opt/denodo/conf/denodo.lic
+
+          subPath: denodo.lic
+
+      volumes:
+
+      - name: config-volume
+
+        configMap:
+
+          name: denodo-license

@@ -1,4 +1,4 @@
-FROM debian:stable as builder
+FROM ubuntu:stable as builder
 
 #test a change
 
